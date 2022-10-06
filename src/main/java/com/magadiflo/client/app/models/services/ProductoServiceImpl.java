@@ -3,10 +3,12 @@ package com.magadiflo.client.app.models.services;
 import com.magadiflo.client.app.models.Producto;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,16 +41,29 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public Mono<Producto> save(Producto producto) {
-        return null;
+        return this.client.post()
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(producto))
+                .retrieve()
+                .bodyToMono(Producto.class);
     }
 
     @Override
     public Mono<Producto> update(Producto producto, String id) {
-        return null;
+        return this.client.put()
+                .uri("/{id}", Collections.singletonMap("id", id))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(producto))
+                .retrieve()
+                .bodyToMono(Producto.class);
     }
 
     @Override
     public Mono<Void> delete(String id) {
-        return null;
+        return this.client.delete()
+                .uri("/{id}", Collections.singletonMap("id", id))
+                .exchangeToMono(clientResponse -> Mono.empty());
     }
 }
