@@ -2,8 +2,10 @@ package com.magadiflo.client.app.handler;
 
 import com.magadiflo.client.app.models.Producto;
 import com.magadiflo.client.app.models.services.ProductoService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
@@ -47,7 +49,15 @@ public class ProductoHandler {
                 .created(URI.create("/api/client/".concat(p.getId())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(p)
-        );
+        ).onErrorResume(throwable -> {
+            WebClientResponseException errorResponse = (WebClientResponseException) throwable;
+            if (errorResponse.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                return ServerResponse.badRequest()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(errorResponse.getResponseBodyAsString());
+            }
+            return Mono.error(errorResponse);
+        });
     }
 
     public Mono<ServerResponse> editar(ServerRequest request) {
