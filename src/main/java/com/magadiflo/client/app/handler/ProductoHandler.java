@@ -8,6 +8,9 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
+import java.util.Date;
+
 @Component
 public class ProductoHandler {
 
@@ -31,6 +34,36 @@ public class ProductoHandler {
                         .bodyValue(producto)
                         .switchIfEmpty(ServerResponse.notFound().build())
                 );
+    }
+
+    public Mono<ServerResponse> crear(ServerRequest request) {
+        Mono<Producto> producto = request.bodyToMono(Producto.class);
+        return producto.flatMap(p -> {
+            if (p.getCreateAt() == null) {
+                p.setCreateAt(new Date());
+            }
+            return this.service.save(p);
+        }).flatMap(p -> ServerResponse
+                .created(URI.create("/api/client/".concat(p.getId())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(p)
+        );
+    }
+
+    public Mono<ServerResponse> editar(ServerRequest request) {
+        String id = request.pathVariable("id");
+        Mono<Producto> producto = request.bodyToMono(Producto.class);
+
+        return producto.flatMap(p -> ServerResponse
+                .created(URI.create("/api/client/".concat(id)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(this.service.update(p, id), Producto.class)
+        );
+    }
+
+    public Mono<ServerResponse> eliminar(ServerRequest request) {
+        String id = request.pathVariable("id");
+        return this.service.delete(id).then(ServerResponse.noContent().build());
     }
 
 }
