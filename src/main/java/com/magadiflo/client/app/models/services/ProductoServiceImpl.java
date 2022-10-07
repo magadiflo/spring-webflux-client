@@ -67,7 +67,8 @@ public class ProductoServiceImpl implements ProductoService {
     public Mono<Void> delete(String id) {
         return this.client.delete()
                 .uri("/{id}", Collections.singletonMap("id", id))
-                .exchangeToMono(clientResponse -> Mono.empty());
+                .retrieve()
+                .bodyToMono(Void.class);
     }
 
     @Override
