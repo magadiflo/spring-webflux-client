@@ -18,15 +18,15 @@ import java.util.Map;
 @Service
 public class ProductoServiceImpl implements ProductoService {
 
-    private final WebClient client;
+    private final WebClient.Builder client;
 
-    public ProductoServiceImpl(WebClient client) {
+    public ProductoServiceImpl(WebClient.Builder client) {
         this.client = client;
     }
 
     @Override
     public Flux<Producto> findAll() {
-        return this.client.get()
+        return this.client.build().get()
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToFlux(Producto.class);
@@ -36,7 +36,7 @@ public class ProductoServiceImpl implements ProductoService {
     public Mono<Producto> findById(String id) {
         Map<String, Object> params = new HashMap<>();
         params.put("id", id);
-        return this.client.get().uri("/{id}", params)
+        return this.client.build().get().uri("/{id}", params)
                 .accept()
                 .retrieve()
                 .bodyToMono(Producto.class);
@@ -44,7 +44,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public Mono<Producto> save(Producto producto) {
-        return this.client.post()
+        return this.client.build().post()
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(producto))
@@ -54,7 +54,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public Mono<Producto> update(Producto producto, String id) {
-        return this.client.put()
+        return this.client.build().put()
                 .uri("/{id}", Collections.singletonMap("id", id))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
@@ -65,7 +65,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     public Mono<Void> delete(String id) {
-        return this.client.delete()
+        return this.client.build().delete()
                 .uri("/{id}", Collections.singletonMap("id", id))
                 .retrieve()
                 .bodyToMono(Void.class);
@@ -77,7 +77,7 @@ public class ProductoServiceImpl implements ProductoService {
         parts.asyncPart("file", file.content(), DataBuffer.class).headers(h -> {
            h.setContentDispositionFormData("file", file.filename());
         });
-        return this.client.post()
+        return this.client.build().post()
                 .uri("/upload/{id}", Collections.singletonMap("id", id))
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(parts.build())
