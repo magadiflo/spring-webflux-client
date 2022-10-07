@@ -33,22 +33,14 @@ public class ProductoHandler {
 
     public Mono<ServerResponse> ver(ServerRequest request) {
         String id = request.pathVariable("id");
-        return this.service.findById(id)
-                .flatMap(producto -> ServerResponse.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(producto)
-                        .switchIfEmpty(ServerResponse.notFound().build())
-                ).onErrorResume(throwable -> {
-                    WebClientResponseException errorResponse = (WebClientResponseException) throwable;
-                    if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
-                        Map<String, Object> body = new HashMap<>();
-                        body.put("error", "No existe el producto ".concat(errorResponse.getMessage()));
-                        body.put("timestamp", new Date());
-                        body.put("status", errorResponse.getStatusCode().value());
-                        return ServerResponse.status(HttpStatus.NOT_FOUND).bodyValue(body); //Si con el not_found queremos enviar algún json de respuesta
-                    }
-                    return Mono.error(errorResponse);
-                });
+        return this.errorHandler(
+                this.service.findById(id)
+                        .flatMap(producto -> ServerResponse.ok()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(producto)
+                                .switchIfEmpty(ServerResponse.notFound().build())
+                        )
+        );
     }
 
     public Mono<ServerResponse> crear(ServerRequest request) {
@@ -77,50 +69,50 @@ public class ProductoHandler {
         String id = request.pathVariable("id");
         Mono<Producto> producto = request.bodyToMono(Producto.class);
 
-        return producto
-                .flatMap(p -> this.service.update(p, id))
-                .flatMap(p -> ServerResponse
-                        .created(URI.create("/api/client/".concat(p.getId())))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(p)
-                ).onErrorResume(throwable -> {
-                    WebClientResponseException errorResponse = (WebClientResponseException) throwable;
-                    if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
-                        return ServerResponse.notFound().build();
-                    }
-                    return Mono.error(errorResponse);
-                });
+        return this.errorHandler(
+                producto
+                        .flatMap(p -> this.service.update(p, id))
+                        .flatMap(p -> ServerResponse
+                                .created(URI.create("/api/client/".concat(p.getId())))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(p)
+                        )
+        );
     }
 
     public Mono<ServerResponse> eliminar(ServerRequest request) {
         String id = request.pathVariable("id");
-        return this.service.delete(id)
-                .then(ServerResponse.noContent().build())
-                .onErrorResume(throwable -> {
-                    WebClientResponseException errorResponse = (WebClientResponseException) throwable;
-                    if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
-                        return ServerResponse.notFound().build(); //build(), por que el notFound() no tiene body, no tiene contenido
-                    }
-                    return Mono.error(errorResponse);
-                });
+        return this.errorHandler(
+                this.service.delete(id).then(ServerResponse.noContent().build())
+        );
     }
 
     public Mono<ServerResponse> upload(ServerRequest request) {
         String id = request.pathVariable("id");
-        return request.multipartData().map(multipart -> multipart.toSingleValueMap().get("file"))
-                .cast(FilePart.class)
-                .flatMap(filePart -> this.service.upload(filePart, id))
-                .flatMap(producto -> ServerResponse
-                        .created(URI.create("/api/client/".concat(producto.getId())))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(producto)
-                ).onErrorResume(throwable -> {
-                    WebClientResponseException errorResponse = (WebClientResponseException) throwable;
-                    if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
-                        return ServerResponse.notFound().build();
-                    }
-                    return Mono.error(errorResponse);
-                });
+        return this.errorHandler(
+                request.multipartData().map(multipart -> multipart.toSingleValueMap().get("file"))
+                        .cast(FilePart.class)
+                        .flatMap(filePart -> this.service.upload(filePart, id))
+                        .flatMap(producto -> ServerResponse
+                                .created(URI.create("/api/client/".concat(producto.getId())))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(producto)
+                        )
+        );
+    }
+
+    private Mono<ServerResponse> errorHandler(Mono<ServerResponse> responseMono) {
+        return responseMono.onErrorResume(throwable -> {
+            WebClientResponseException errorResponse = (WebClientResponseException) throwable;
+            if (errorResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
+                Map<String, Object> body = new HashMap<>();
+                body.put("error", "No existe el producto ".concat(errorResponse.getMessage()));
+                body.put("timestamp", new Date());
+                body.put("status", errorResponse.getStatusCode().value());
+                return ServerResponse.status(HttpStatus.NOT_FOUND).bodyValue(body); //Si con el not_found queremos enviar algún json de respuesta
+            }
+            return Mono.error(errorResponse);
+        });
     }
 
 }
